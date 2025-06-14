@@ -1,20 +1,44 @@
-// Enterprise AI Website Manager
+// Enterprise AI Website Manager - Enhanced Version
 class EnterpriseAIWebsite {
     constructor() {
         this.apiEndpoint = 'https://api.openai.com/v1/chat/completions';
         this.currentTheme = localStorage.getItem('theme') || 'light';
         this.chatWidget = null;
         this.chatMessages = [];
+        this.isInitialized = false;
+        this.errorCount = 0;
+        this.maxErrors = 5;
         this.init();
     }
 
     init() {
-        this.setupTheme();
-        this.setupEventListeners();
-        this.setupNavigation();
-        this.setupAIChat();
-        this.setupAnalytics();
-        this.setupRealTimeUpdates();
+        try {
+            this.setupTheme();
+            this.setupEventListeners();
+            this.setupNavigation();
+            this.setupAIChat();
+            this.setupAnalytics();
+            this.setupRealTimeUpdates();
+            this.isInitialized = true;
+        } catch (error) {
+            this.handleInitError(error);
+        }
+    }
+
+    handleInitError(error) {
+        this.showError('Failed to initialize website features. Some functionality may be limited.');
+        // Fallback to basic functionality
+        this.setupBasicFeatures();
+    }
+
+    setupBasicFeatures() {
+        // Minimal setup for when full initialization fails
+        try {
+            this.setupTheme();
+            this.setupEventListeners();
+        } catch (error) {
+            // Silent fail for basic features
+        }
     }
 
     // Theme Management
@@ -51,8 +75,21 @@ class EnterpriseAIWebsite {
         this.chatInput = document.getElementById('chatInput');
         this.chatFloatingBtn = document.getElementById('chatFloatingBtn');
         
-        // Initialize with welcome message
-        this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
+        // Only initialize if elements exist
+        if (this.chatWidget && this.chatMessages) {
+            // Initialize with welcome message
+            this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
+            
+            // Add keyboard support for chat input
+            if (this.chatInput) {
+                this.chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage(this.chatInput.value);
+                    }
+                });
+            }
+        }
     }
 
     toggleChat() {
@@ -162,7 +199,9 @@ class EnterpriseAIWebsite {
     }
 
     scrollToBottom() {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        if (this.chatMessages) {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
     }
 
     async sendMessage(message) {
@@ -252,14 +291,40 @@ class EnterpriseAIWebsite {
     }
 
     async generateResponse() {
-        const businessName = document.getElementById('businessName').value.trim();
-        const businessType = document.getElementById('businessType').value;
-        const reviewText = document.getElementById('reviewText').value.trim();
-        const rating = parseInt(document.getElementById('rating').value);
+        // Check if elements exist
+        const businessNameEl = document.getElementById('businessName');
+        const businessTypeEl = document.getElementById('businessType');
+        const reviewTextEl = document.getElementById('reviewText');
+        const ratingEl = document.getElementById('rating');
 
-        // Validation
-        if (!businessName || !businessType || !reviewText || !rating) {
-            this.showError('Please fill in all fields');
+        if (!businessNameEl || !businessTypeEl || !reviewTextEl || !ratingEl) {
+            this.showError('Form elements not found. Please refresh the page.');
+            return;
+        }
+
+        const businessName = businessNameEl.value.trim();
+        const businessType = businessTypeEl.value;
+        const reviewText = reviewTextEl.value.trim();
+        const rating = parseInt(ratingEl.value);
+
+        // Enhanced validation
+        if (!businessName || businessName.length < 2) {
+            this.showError('Please enter a valid business name (at least 2 characters)');
+            return;
+        }
+        
+        if (!businessType) {
+            this.showError('Please select a business type');
+            return;
+        }
+        
+        if (!reviewText || reviewText.length < 10) {
+            this.showError('Please enter a review with at least 10 characters');
+            return;
+        }
+        
+        if (!rating || rating < 1 || rating > 5) {
+            this.showError('Please select a rating between 1 and 5 stars');
             return;
         }
 
@@ -267,11 +332,17 @@ class EnterpriseAIWebsite {
         this.showLoading();
 
         try {
-            // Generate response using local AI logic (since we can't use OpenAI API directly from frontend)
+            // Generate response using local AI logic
             const response = await this.generateLocalResponse(businessName, businessType, reviewText, rating);
             this.showResponse(response);
+            this.errorCount = 0; // Reset error count on success
         } catch (error) {
-            this.showError('Failed to generate response. Please try again.');
+            this.errorCount++;
+            if (this.errorCount >= this.maxErrors) {
+                this.showError('Multiple errors detected. Please refresh the page and try again.');
+            } else {
+                this.showError('Failed to generate response. Please try again.');
+            }
         }
     }
 
@@ -498,22 +569,30 @@ class EnterpriseAIWebsite {
             campaign.ctr += (Math.random() - 0.5) * 0.2;
         });
 
-        // Update campaign display
+        // Update campaign display with error handling
         const campaignList = document.getElementById('adCampaigns');
-        campaignList.innerHTML = this.campaigns.map(campaign => `
-            <div class="campaign-item">
-                <div class="campaign-info">
-                    <h4>${campaign.name}</h4>
-                    <div class="campaign-stats">
-                        <span>ROI: ${Math.round(campaign.roi)}%</span>
-                        <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
+        if (campaignList) {
+            campaignList.innerHTML = this.campaigns.map(campaign => `
+                <div class="campaign-item">
+                    <div class="campaign-info">
+                        <h4>${this.escapeHtml(campaign.name)}</h4>
+                        <div class="campaign-stats">
+                            <span>ROI: ${Math.round(campaign.roi)}%</span>
+                            <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                    <div class="campaign-progress">
+                        <div class="progress-bar" style="width: ${campaign.progress}%"></div>
                     </div>
                 </div>
-                <div class="campaign-progress">
-                    <div class="progress-bar" style="width: ${campaign.progress}%"></div>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     updateAIRecommendations() {
@@ -584,7 +663,8 @@ function regenerateResponse() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    window.reviewGenerator = new ReviewResponseGenerator();
+    // Fix: Use correct class name
+    window.reviewGenerator = new EnterpriseAIWebsite();
     
     // Add some interactive animations
     const observerOptions = {
@@ -661,5 +741,5 @@ document.addEventListener('click', function(e) {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ReviewResponseGenerator };
-} 
+    module.exports = { EnterpriseAIWebsite };
+}

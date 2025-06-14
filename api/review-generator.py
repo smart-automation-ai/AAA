@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Review Response Generator API
+AI Review Response Generator API - Enhanced Version
 Optimized for Tipton County, TN businesses
 """
 
@@ -12,9 +12,14 @@ import json
 import time
 from datetime import datetime
 import logging
+from functools import wraps
+import re
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -23,6 +28,23 @@ CORS(app)
 # Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'your-openai-api-key-here')
 openai.api_key = OPENAI_API_KEY
+
+def validate_input(f):
+    """Decorator to validate API input"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+        return f(*args, **kwargs)
+    return decorated_function
+
+def sanitize_input(text):
+    """Sanitize user input to prevent XSS and other attacks"""
+    if not isinstance(text, str):
+        return str(text)
+    # Remove potentially dangerous characters
+    text = re.sub(r'[<>"\']', '', text)
+    return text.strip()
 
 class ReviewResponseGenerator:
     def __init__(self):
@@ -36,9 +58,28 @@ class ReviewResponseGenerator:
             'healthcare': 'healthcare practice',
             'other': 'business'
         }
+        self.max_text_length = 1000
+        self.min_text_length = 5
         
     def generate_response(self, business_name, business_type, review_text, rating):
-        """Generate AI response to customer review"""
+        """Generate AI response to customer review with enhanced validation"""
+        
+        # Sanitize inputs
+        business_name = sanitize_input(business_name)
+        review_text = sanitize_input(review_text)
+        
+        # Validate inputs
+        if not business_name or len(business_name) < 2:
+            raise ValueError("Business name must be at least 2 characters")
+        
+        if len(review_text) < self.min_text_length:
+            raise ValueError(f"Review text must be at least {self.min_text_length} characters")
+            
+        if len(review_text) > self.max_text_length:
+            raise ValueError(f"Review text must be less than {self.max_text_length} characters")
+        
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            raise ValueError("Rating must be an integer between 1 and 5")
         
         # Determine tone and focus based on rating
         if rating >= 4:
@@ -143,30 +184,42 @@ def home():
     return render_template('index.html')
 
 @app.route('/api/generate-response', methods=['POST'])
+@validate_input
 def generate_response():
-    """API endpoint to generate review responses"""
+    """API endpoint to generate review responses with enhanced validation"""
     try:
         data = request.get_json()
         
         # Validate input
         required_fields = ['businessName', 'businessType', 'reviewText', 'rating']
         for field in required_fields:
-            if field not in data or not data[field]:
+            if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
+            if not data[field] and field != 'rating':  # rating can be 0
+                return jsonify({'error': f'Empty value for required field: {field}'}), 400
         
-        business_name = data['businessName'].strip()
-        business_type = data['businessType']
-        review_text = data['reviewText'].strip()
-        rating = int(data['rating'])
+        try:
+            business_name = str(data['businessName']).strip()
+            business_type = str(data['businessType']).strip()
+            review_text = str(data['reviewText']).strip()
+            rating = int(data['rating'])
+        except (ValueError, TypeError) as e:
+            return jsonify({'error': f'Invalid data type in request: {str(e)}'}), 400
         
-        # Validate rating
-        if rating < 1 or rating > 5:
-            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
+        # Additional validation
+        if business_type not in generator.business_types:
+            return jsonify({'error': 'Invalid business type'}), 400
         
-        # Generate response
-        response_text = generator.generate_response(
-            business_name, business_type, review_text, rating
-        )
+        # Generate response with enhanced error handling
+        try:
+            response_text = generator.generate_response(
+                business_name, business_type, review_text, rating
+            )
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Unexpected error in response generation: {e}")
+            return jsonify({'error': 'Failed to generate response due to internal error'}), 500
         
         # Log the request (for analytics)
         logger.info(f"Generated response for {business_name} ({business_type}) - {rating} stars")
@@ -178,13 +231,14 @@ def generate_response():
                 'business_name': business_name,
                 'business_type': business_type,
                 'rating': rating,
-                'generated_at': datetime.now().isoformat()
+                'generated_at': datetime.now().isoformat(),
+                'response_length': len(response_text)
             }
         })
         
     except Exception as e:
-        logger.error(f"Error generating response: {e}")
-        return jsonify({'error': 'Failed to generate response'}), 500
+        logger.error(f"Error in generate_response endpoint: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/business-types', methods=['GET'])
 def get_business_types():
