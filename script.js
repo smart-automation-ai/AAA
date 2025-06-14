@@ -271,7 +271,6 @@ class EnterpriseAIWebsite {
             const response = await this.generateLocalResponse(businessName, businessType, reviewText, rating);
             this.showResponse(response);
         } catch (error) {
-            console.error('Error generating response:', error);
             this.showError('Failed to generate response. Please try again.');
         }
     }
@@ -360,7 +359,30 @@ class EnterpriseAIWebsite {
 
     showError(message) {
         document.getElementById('loadingSpinner').style.display = 'none';
-        alert(message);
+        // Show error in a more user-friendly way
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4444;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-weight: 500;
+        `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
     }
 
     copyResponse(event) {
@@ -377,8 +399,7 @@ class EnterpriseAIWebsite {
                 button.style.background = '';
             }, 2000);
         }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            alert('Failed to copy to clipboard');
+            this.showError('Failed to copy to clipboard');
         });
     }
 
@@ -615,16 +636,15 @@ function addDemoButton() {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful');
+            // ServiceWorker registered successfully
         }, function(err) {
-            console.log('ServiceWorker registration failed: ', err);
+            // ServiceWorker registration failed
         });
     });
 }
 
 // Analytics placeholder (replace with your analytics code)
 function trackEvent(eventName, properties = {}) {
-    console.log('Event tracked:', eventName, properties);
     // Add your analytics tracking code here
     // Example: gtag('event', eventName, properties);
 }

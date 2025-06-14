@@ -241,7 +241,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
     
-    print(f"🤖 Smart Automation AI API starting on port {port}")
-    print(f"🤖 AI Review Response Generator ready for Tipton County businesses!")
-    
-    app.run(host='0.0.0.0', port=port, debug=debug) 
+    app.run(host='0.0.0.0', port=port, debug=debug)
