@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Azeroth Automation - AI Business Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1>🛡️ Azeroth Automation</h1>
+                <p class="tagline">AI-Powered Business Solutions</p>
+            </div>
+            <nav class="nav">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#services" class="nav-link">Services</a>
+                <a href="#review-generator" class="nav-link">Review AI</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#contact" class="nav-link">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="home" class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h2>Automate Your Business with AI</h2>
+                    <p>Professional AI automation solutions for Tipton County businesses. Save time, increase efficiency, and grow your revenue.</p>
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <span class="status-dot online"></span>
+                            <span>Server Status: Online</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot ssl"></span>
+                            <span>🔒 SSL Status: Secure</span>
+                        </div>
+                    </div>
+                    <div class="cta-buttons">
+                        <button class="btn btn-primary" onclick="testApiConnection()">Test API Connection</button>
+                        <a href="#review-generator" class="btn btn-secondary">Try Review AI</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section id="services" class="services">
+            <div class="container">
+                <h2>Our AI Automation Services</h2>
+                <div class="services-grid">
+                    <div class="service-card featured">
+                        <div class="service-icon">🤖</div>
+                        <h3>AI Review Response Generator</h3>
+                        <p>Automatically generate personalized responses to customer reviews across all platforms. Save 2+ hours per week.</p>
+                        <ul>
+                            <li>✅ Google Reviews & Yelp Integration</li>
+                            <li>✅ Personalized AI Responses</li>
+                            <li>✅ Sentiment Analysis</li>
+                            <li>✅ Multi-Platform Support</li>
+                        </ul>
+                        <div class="price">$300/month</div>
+                    </div>
+                    
+                    <div class="service-card">
+                        <div class="service-icon">📱</div>
+                        <h3>Social Media Automation</h3>
+                        <p>AI-powered social media management for consistent, engaging content across all platforms.</p>
+                        <ul>
+                            <li>✅ Content Generation</li>
+                            <li>✅ Optimal Posting Times</li>
+                            <li>✅ Hashtag Optimization</li>
+                            <li>✅ Engagement Tracking</li>
+                        </ul>
+                        <div class="price">$400/month</div>
+                    </div>
+                    
+                    <div class="service-card">
+                        <div class="service-icon">🏠</div>
+                        <h3>Real Estate AI Assistant</h3>
+                        <p>Automated property descriptions, social media posts, and lead follow-up for real estate professionals.</p>
+                        <ul>
+                            <li>✅ Property Descriptions</li>
+                            <li>✅ Lead Qualification</li>
+                            <li>✅ Market Analysis</li>
+                            <li>✅ Client Communication</li>
+                        </ul>
+                        <div class="price">$500/month</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Review Generator Tool -->
+        <section id="review-generator" class="tool-section">
+            <div class="container">
+                <h2>🤖 AI Review Response Generator</h2>
+                <p class="section-subtitle">Try our AI-powered review response generator. Perfect for Tipton County businesses!</p>
+                
+                <div class="tool-container">
+                    <div class="tool-form">
+                        <div class="form-group">
+                            <label for="businessName">Business Name</label>
+                            <input type="text" id="businessName" placeholder="e.g., Joe's Restaurant" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="businessType">Business Type</label>
+                            <select id="businessType" required>
+                                <option value="">Select Business Type</option>
+                                <option value="restaurant">Restaurant</option>
+                                <option value="auto-repair">Auto Repair</option>
+                                <option value="beauty-salon">Beauty Salon</option>
+                                <option value="dental">Dental Practice</option>
+                                <option value="real-estate">Real Estate</option>
+                                <option value="retail">Retail Store</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reviewText">Customer Review</label>
+                            <textarea id="reviewText" placeholder="Paste the customer review here..." rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rating">Review Rating</label>
+                            <select id="rating" required>
+                                <option value="">Select Rating</option>
+                                <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+                                <option value="4">⭐⭐⭐⭐ (4 stars)</option>
+                                <option value="3">⭐⭐⭐ (3 stars)</option>
+                                <option value="2">⭐⭐ (2 stars)</option>
+                                <option value="1">⭐ (1 star)</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-generate" onclick="generateResponse()">
+                            <i class="fas fa-magic"></i> Generate AI Response
+                        </button>
+                    </div>
+                    
+                    <div class="tool-output">
+                        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>AI is crafting your response...</p>
+                        </div>
+                        
+                        <div id="responseOutput" class="response-output" style="display: none;">
+                            <h4>Generated Response:</h4>
+                            <div class="response-text" id="generatedResponse"></div>
+                            <div class="response-actions">
+                                <button class="btn btn-secondary" onclick="copyResponse()">
+                                    <i class="fas fa-copy"></i> Copy Response
+                                </button>
+                                <button class="btn btn-primary" onclick="regenerateResponse()">
+                                    <i class="fas fa-redo"></i> Regenerate
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="demo-examples">
+                            <h4>Example Results:</h4>
+                            <div class="example-card">
+                                <div class="example-review">
+                                    <strong>5-star review:</strong> "Great food and excellent service! Will definitely be back."
+                                </div>
+                                <div class="example-response">
+                                    <strong>AI Response:</strong> "Thank you so much for the wonderful review! We're thrilled you enjoyed both the food and service. We can't wait to welcome you back to Joe's Restaurant soon!"
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="pricing">
+            <div class="container">
+                <h2>Simple, Transparent Pricing</h2>
+                <p class="section-subtitle">Perfect for Tipton County businesses of all sizes</p>
+                
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <h3>Starter</h3>
+                        <div class="price">$200<span>/month</span></div>
+                        <ul>
+                            <li>✅ Up to 20 reviews/month</li>
+                            <li>✅ Google Reviews integration</li>
+                            <li>✅ Basic AI responses</li>
+                            <li>✅ Email support</li>
+                        </ul>
+                        <button class="btn btn-outline">Get Started</button>
+                    </div>
+                    
+                    <div class="pricing-card featured">
+                        <div class="popular-badge">Most Popular</div>
+                        <h3>Professional</h3>
+                        <div class="price">$400<span>/month</span></div>
+                        <ul>
+                            <li>✅ Unlimited reviews</li>
+                            <li>✅ All platforms (Google, Yelp, Facebook)</li>
+                            <li>✅ Advanced AI responses</li>
+                            <li>✅ Sentiment analysis</li>
+                            <li>✅ Priority support</li>
+                            <li>✅ Monthly reports</li>
+                        </ul>
+                        <button class="btn btn-primary">Start Free Trial</button>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <h3>Enterprise</h3>
+                        <div class="price">$800<span>/month</span></div>
+                        <ul>
+                            <li>✅ Everything in Professional</li>
+                            <li>✅ Multi-location support</li>
+                            <li>✅ Custom AI training</li>
+                            <li>✅ API access</li>
+                            <li>✅ Dedicated account manager</li>
+                            <li>✅ White-label options</li>
+                        </ul>
+                        <button class="btn btn-outline">Contact Sales</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="contact">
+            <div class="container">
+                <h2>Ready to Automate Your Business?</h2>
+                <p class="section-subtitle">Serving Tipton County: Covington, Atoka, Brighton, Munford & surrounding areas</p>
+                
+                <div class="contact-content">
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <h4>Service Area</h4>
+                                <p>Tipton County, TN<br>Memphis Metro Area</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <div>
+                                <h4>Phone</h4>
+                                <p>(901) 555-0123</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <h4>Email</h4>
+                                <p>hello@azerothautomation.com</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-form">
+                        <form id="contactForm">
+                            <div class="form-row">
+                                <input type="text" placeholder="Your Name" required>
+                                <input type="email" placeholder="Your Email" required>
+                            </div>
+                            <input type="text" placeholder="Business Name">
+                            <select required>
+                                <option value="">Select Service Interest</option>
+                                <option value="review-ai">AI Review Response</option>
+                                <option value="social-media">Social Media Automation</option>
+                                <option value="real-estate">Real Estate AI</option>
+                                <option value="custom">Custom Solution</option>
+                            </select>
+                            <textarea placeholder="Tell us about your business needs..." rows="4"></textarea>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Get Free Consultation
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>🛡️ Azeroth Automation</h4>
+                    <p>AI-powered business solutions for the modern entrepreneur.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Services</h4>
+                    <ul>
+                        <li><a href="#review-generator">Review AI</a></li>
+                        <li><a href="#services">Social Media</a></li>
+                        <li><a href="#services">Real Estate AI</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li>Tipton County, TN</li>
+                        <li>(901) 555-0123</li>
+                        <li>hello@azerothautomation.com</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Azeroth Automation. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
