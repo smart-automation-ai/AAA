@@ -11,8 +11,8 @@ class ReviewResponseGenerator {
     }
 
     setupEventListeners() {
-        // Form submission
-        const contactForm = document.getElementById('contactForm');
+        // Form submission - support both old and new form IDs
+        const contactForm = document.getElementById('contactForm') || document.getElementById('enterpriseContactForm');
         if (contactForm) {
             contactForm.addEventListener('submit', this.handleContactForm.bind(this));
         }

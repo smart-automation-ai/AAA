@@ -13,33 +13,16 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
         
-    - name: Install dependencies
+    - name: Setup deployment directory
       run: |
-        npm install -g html-minifier-terser
-        npm install -g clean-css-cli
-        npm install -g terser
-        
-    - name: Optimize files
-      run: |
-        # Minify HTML
-        html-minifier-terser --input-dir . --output-dir dist --file-ext html --collapse-whitespace --remove-comments --minify-css --minify-js
-        
-        # Minify CSS
-        cleancss -o dist/styles.min.css styles.css
-        
-        # Minify JavaScript
-        terser script.js -o dist/script.min.js --compress --mangle
-        
-        # Copy other files
-        cp -r api dist/
-        cp requirements.txt dist/
-        cp README.md dist/
+        mkdir -p dist
+        cp *.html dist/
+        cp *.css dist/
+        cp *.js dist/
+        cp -r api dist/ 2>/dev/null || true
+        cp requirements.txt dist/ 2>/dev/null || true
+        cp README.md dist/ 2>/dev/null || true
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
@@ -47,4 +30,3 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
-        cname: smart-automation-ai.github.io 

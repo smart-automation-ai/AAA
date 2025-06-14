@@ -1,0 +1,25 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "chatbots",
+        "Tipton",
+        "Covington",
+        "Atoka",
+        "Brighton",
+        "Munford",
+        "smartautomationai",
+        "automationai",
+        "Azeroth",
+        "Flexbox",
+        "Gunicorn",
+        "WSGI",
+        "footergrid"
+    ],
+    "ignorePaths": [
+        "node_modules/**",
+        ".git/**",
+        "*.min.js",
+        "*.min.css"
+    ]
+}
