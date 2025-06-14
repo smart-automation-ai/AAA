@@ -1,44 +1,85 @@
-// Enterprise AI Website Manager - Enhanced Version
+// Enterprise AI Website Manager
 class EnterpriseAIWebsite {
     constructor() {
         this.apiEndpoint = 'https://api.openai.com/v1/chat/completions';
         this.currentTheme = localStorage.getItem('theme') || 'light';
         this.chatWidget = null;
         this.chatMessages = [];
+        this.animationQueue = [];
         this.isInitialized = false;
-        this.errorCount = 0;
-        this.maxErrors = 5;
+        this.observers = new Map();
         this.init();
     }
 
-    init() {
+    async init() {
         try {
+            // Initialize core functionality
             this.setupTheme();
             this.setupEventListeners();
             this.setupNavigation();
             this.setupAIChat();
             this.setupAnalytics();
             this.setupRealTimeUpdates();
+            this.setupAnimations();
+            this.setupIntersectionObserver();
             this.isInitialized = true;
+            
+            // Fire ready event
+            this.onReady();
         } catch (error) {
-            this.handleInitError(error);
+            console.error('Failed to initialize website:', error);
+            this.handleError(error, 'initialization');
         }
     }
 
-    handleInitError(error) {
-        this.showError('Failed to initialize website features. Some functionality may be limited.');
-        // Fallback to basic functionality
-        this.setupBasicFeatures();
+    onReady() {
+        document.body.classList.add('website-loaded');
+        console.log('Enterprise AI Website initialized successfully');
     }
 
-    setupBasicFeatures() {
-        // Minimal setup for when full initialization fails
-        try {
-            this.setupTheme();
-            this.setupEventListeners();
-        } catch (error) {
-            // Silent fail for basic features
+    handleError(error, context = 'general') {
+        console.error(`Error in ${context}:`, error);
+        
+        // Show user-friendly error message if needed
+        if (context === 'api' || context === 'chat') {
+            this.showNotification('Service temporarily unavailable. Please try again later.', 'error');
         }
+
+        // Log to analytics if available
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'exception', {
+                description: `${context}: ${error.message}`,
+                fatal: false
+            });
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+
+        // Close button functionality
+        notification.querySelector('.notification-close').addEventListener('click', () => {
+            notification.remove();
+        });
     }
 
     // Theme Management
@@ -68,6 +109,111 @@ class EnterpriseAIWebsite {
         }
     }
 
+    // Animation System
+    setupAnimations() {
+        // Set up CSS custom properties for animations
+        document.querySelectorAll('[data-delay]').forEach(element => {
+            const delay = element.dataset.delay;
+            element.style.setProperty('--delay', delay + 's');
+        });
+
+        // Trigger hero animations on load
+        this.triggerHeroAnimations();
+    }
+
+    triggerHeroAnimations() {
+        const heroElements = document.querySelectorAll('.hero .animate-fade-in, .hero .animate-slide-up');
+        heroElements.forEach((element, index) => {
+            setTimeout(() => {
+                element.classList.add('animated');
+            }, index * 100);
+        });
+
+        // Animate stat numbers
+        this.animateStatNumbers();
+    }
+
+    animateStatNumbers() {
+        const statItems = document.querySelectorAll('.stat-item[data-value]');
+        statItems.forEach(item => {
+            const targetValue = parseInt(item.dataset.value);
+            const numberElement = item.querySelector('.stat-number');
+            const duration = 2000; // 2 seconds
+            const startTime = Date.now();
+            
+            const updateNumber = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function for smooth animation
+                const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.floor(targetValue * easeOutCubic);
+                
+                numberElement.textContent = currentValue + (targetValue === 85 ? '%' : targetValue === 500 ? '+' : '');
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            };
+            
+            // Delay animation start
+            setTimeout(() => {
+                updateNumber();
+            }, 1000);
+        });
+    }
+
+    setupIntersectionObserver() {
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in-view');
+                    
+                    // Trigger specific animations based on element type
+                    if (entry.target.classList.contains('service-card')) {
+                        this.animateServiceCard(entry.target);
+                    } else if (entry.target.classList.contains('pricing-card')) {
+                        this.animatePricingCard(entry.target);
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animatable elements
+        document.querySelectorAll('.service-card, .pricing-card, .case-study-card, .dashboard-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        this.observers.set('intersection', observer);
+    }
+
+    animateServiceCard(card) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        
+        requestAnimationFrame(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        });
+    }
+
+    animatePricingCard(card) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px) scale(0.95)';
+        card.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+        
+        requestAnimationFrame(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0) scale(1)';
+        });
+    }
+
     // AI Chat System
     setupAIChat() {
         this.chatWidget = document.getElementById('aiChatWidget');
@@ -75,21 +221,8 @@ class EnterpriseAIWebsite {
         this.chatInput = document.getElementById('chatInput');
         this.chatFloatingBtn = document.getElementById('chatFloatingBtn');
         
-        // Only initialize if elements exist
-        if (this.chatWidget && this.chatMessages) {
-            // Initialize with welcome message
-            this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
-            
-            // Add keyboard support for chat input
-            if (this.chatInput) {
-                this.chatInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        this.sendMessage(this.chatInput.value);
-                    }
-                });
-            }
-        }
+        // Initialize with welcome message
+        this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
     }
 
     toggleChat() {
@@ -199,9 +332,7 @@ class EnterpriseAIWebsite {
     }
 
     scrollToBottom() {
-        if (this.chatMessages) {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        }
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 
     async sendMessage(message) {
@@ -246,24 +377,113 @@ class EnterpriseAIWebsite {
     }
 
     setupEventListeners() {
-        // Form submission - support both old and new form IDs
-        const contactForm = document.getElementById('contactForm') || document.getElementById('enterpriseContactForm');
-        if (contactForm) {
-            contactForm.addEventListener('submit', this.handleContactForm.bind(this));
-        }
+        try {
+            // Enhanced theme toggle
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    this.toggleTheme();
+                });
+            }
 
-        // Smooth scrolling for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+            // Enhanced AI chat controls
+            const aiChatToggle = document.getElementById('aiChatToggle');
+            const chatFloatingBtn = document.getElementById('chatFloatingBtn');
+            const chatMinimize = document.getElementById('chatMinimize');
+            const chatClose = document.getElementById('chatClose');
+            const chatSend = document.getElementById('chatSend');
+            const chatInput = document.getElementById('chatInput');
+
+            if (aiChatToggle) {
+                aiChatToggle.addEventListener('click', () => this.toggleChat());
+            }
+            if (chatFloatingBtn) {
+                chatFloatingBtn.addEventListener('click', () => this.toggleChat());
+            }
+            if (chatMinimize) {
+                chatMinimize.addEventListener('click', () => this.minimizeChat());
+            }
+            if (chatClose) {
+                chatClose.addEventListener('click', () => this.closeChat());
+            }
+            if (chatSend) {
+                chatSend.addEventListener('click', () => {
+                    const message = chatInput?.value?.trim();
+                    if (message) {
+                        this.sendMessage(message);
+                    }
+                });
+            }
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        const message = chatInput.value.trim();
+                        if (message) {
+                            this.sendMessage(message);
+                        }
+                    }
+                });
+            }
+
+            // Form submission with enhanced error handling
+            const contactForm = document.getElementById('contactForm') || document.getElementById('enterpriseContactForm');
+            if (contactForm) {
+                contactForm.addEventListener('submit', this.handleContactForm.bind(this));
+            }
+
+            // Enhanced smooth scrolling for navigation
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = anchor.getAttribute('href');
+                    const target = document.querySelector(targetId);
+                    if (target) {
+                        this.smoothScrollTo(target);
+                        this.trackEvent('navigation_click', {
+                            target: targetId
+                        });
+                    }
+                });
             });
+
+            // Form input validation
+            document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(input => {
+                input.addEventListener('input', () => {
+                    input.classList.remove('error');
+                });
+                
+                input.addEventListener('focus', () => {
+                    input.classList.add('focused');
+                });
+                
+                input.addEventListener('blur', () => {
+                    input.classList.remove('focused');
+                });
+            });
+
+            // Enhanced button interactions
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('mouseenter', () => {
+                    button.classList.add('hover-effect');
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    button.classList.remove('hover-effect');
+                });
+            });
+
+        } catch (error) {
+            this.handleError(error, 'event_listeners');
+        }
+    }
+
+    smoothScrollTo(target, offset = 100) {
+        const targetPosition = target.offsetTop - offset;
+        
+        window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
         });
     }
 
@@ -291,58 +511,104 @@ class EnterpriseAIWebsite {
     }
 
     async generateResponse() {
-        // Check if elements exist
-        const businessNameEl = document.getElementById('businessName');
-        const businessTypeEl = document.getElementById('businessType');
-        const reviewTextEl = document.getElementById('reviewText');
-        const ratingEl = document.getElementById('rating');
-
-        if (!businessNameEl || !businessTypeEl || !reviewTextEl || !ratingEl) {
-            this.showError('Form elements not found. Please refresh the page.');
-            return;
-        }
-
-        const businessName = businessNameEl.value.trim();
-        const businessType = businessTypeEl.value;
-        const reviewText = reviewTextEl.value.trim();
-        const rating = parseInt(ratingEl.value);
-
-        // Enhanced validation
-        if (!businessName || businessName.length < 2) {
-            this.showError('Please enter a valid business name (at least 2 characters)');
-            return;
-        }
-        
-        if (!businessType) {
-            this.showError('Please select a business type');
-            return;
-        }
-        
-        if (!reviewText || reviewText.length < 10) {
-            this.showError('Please enter a review with at least 10 characters');
-            return;
-        }
-        
-        if (!rating || rating < 1 || rating > 5) {
-            this.showError('Please select a rating between 1 and 5 stars');
-            return;
-        }
-
-        // Show loading
-        this.showLoading();
-
         try {
+            // Get form elements with error handling
+            const businessNameEl = document.getElementById('businessName');
+            const businessTypeEl = document.getElementById('businessType');
+            const reviewTextEl = document.getElementById('reviewText');
+            const ratingEl = document.getElementById('rating');
+
+            if (!businessNameEl || !businessTypeEl || !reviewTextEl || !ratingEl) {
+                throw new Error('Form elements not found');
+            }
+
+            const businessName = businessNameEl.value.trim();
+            const businessType = businessTypeEl.value;
+            const reviewText = reviewTextEl.value.trim();
+            const rating = parseInt(ratingEl.value);
+
+            // Enhanced validation
+            const validationErrors = this.validateFormInput({
+                businessName,
+                businessType,
+                reviewText,
+                rating
+            });
+
+            if (validationErrors.length > 0) {
+                this.showError(validationErrors.join(', '));
+                this.highlightErrorFields(validationErrors);
+                return;
+            }
+
+            // Show loading with skeleton
+            this.showLoading();
+
+            // Add artificial delay for better UX
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Generate response using local AI logic
             const response = await this.generateLocalResponse(businessName, businessType, reviewText, rating);
             this.showResponse(response);
-            this.errorCount = 0; // Reset error count on success
+
+            // Track successful generation
+            this.trackEvent('response_generated', {
+                business_type: businessType,
+                rating: rating,
+                response_length: response.length
+            });
+
         } catch (error) {
-            this.errorCount++;
-            if (this.errorCount >= this.maxErrors) {
-                this.showError('Multiple errors detected. Please refresh the page and try again.');
-            } else {
-                this.showError('Failed to generate response. Please try again.');
-            }
+            console.error('Error generating response:', error);
+            this.handleError(error, 'response_generation');
+            this.showError('Failed to generate response. Please try again.');
+        }
+    }
+
+    validateFormInput({ businessName, businessType, reviewText, rating }) {
+        const errors = [];
+
+        if (!businessName || businessName.length < 2) {
+            errors.push('Business name must be at least 2 characters');
+        }
+
+        if (!businessType) {
+            errors.push('Please select a business type');
+        }
+
+        if (!reviewText || reviewText.length < 10) {
+            errors.push('Review text must be at least 10 characters');
+        }
+
+        if (reviewText && reviewText.length > 1000) {
+            errors.push('Review text must be less than 1000 characters');
+        }
+
+        if (!rating || rating < 1 || rating > 5) {
+            errors.push('Please select a valid rating (1-5 stars)');
+        }
+
+        return errors;
+    }
+
+    highlightErrorFields(errors) {
+        // Remove existing error highlights
+        document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(field => {
+            field.classList.remove('error');
+        });
+
+        // Add error highlights based on error messages
+        if (errors.some(e => e.includes('Business name'))) {
+            document.getElementById('businessName')?.classList.add('error');
+        }
+        if (errors.some(e => e.includes('business type'))) {
+            document.getElementById('businessType')?.classList.add('error');
+        }
+        if (errors.some(e => e.includes('Review text'))) {
+            document.getElementById('reviewText')?.classList.add('error');
+        }
+        if (errors.some(e => e.includes('rating'))) {
+            document.getElementById('rating')?.classList.add('error');
         }
     }
 
@@ -418,42 +684,129 @@ class EnterpriseAIWebsite {
     }
 
     showLoading() {
-        document.getElementById('loadingSpinner').style.display = 'block';
-        document.getElementById('responseOutput').style.display = 'none';
+        const loadingElement = document.getElementById('loadingSpinner');
+        const responseElement = document.getElementById('responseOutput');
+        
+        if (loadingElement) {
+            loadingElement.style.display = 'block';
+            loadingElement.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner-enhanced">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <p>AI is crafting your response...</p>
+                    <div class="loading-progress">
+                        <div class="progress-bar-loading"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (responseElement) {
+            responseElement.style.display = 'none';
+        }
+
+        // Add skeleton loading to response area
+        this.showSkeletonLoader();
+    }
+
+    showSkeletonLoader() {
+        const outputArea = document.querySelector('.tool-output');
+        if (!outputArea) return;
+
+        const skeletonHTML = `
+            <div class="skeleton-loader">
+                <div class="skeleton-text skeleton" style="width: 80%;"></div>
+                <div class="skeleton-text skeleton" style="width: 95%;"></div>
+                <div class="skeleton-text skeleton" style="width: 70%;"></div>
+                <div class="skeleton-text skeleton" style="width: 90%;"></div>
+                <div class="skeleton-button skeleton"></div>
+            </div>
+        `;
+
+        let skeletonContainer = outputArea.querySelector('.skeleton-container');
+        if (!skeletonContainer) {
+            skeletonContainer = document.createElement('div');
+            skeletonContainer.className = 'skeleton-container';
+            outputArea.appendChild(skeletonContainer);
+        }
+
+        skeletonContainer.innerHTML = skeletonHTML;
+        skeletonContainer.style.display = 'block';
+    }
+
+    hideSkeletonLoader() {
+        const skeletonContainer = document.querySelector('.skeleton-container');
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'none';
+        }
     }
 
     showResponse(response) {
-        document.getElementById('loadingSpinner').style.display = 'none';
-        document.getElementById('responseOutput').style.display = 'block';
-        document.getElementById('generatedResponse').textContent = response;
+        const loadingElement = document.getElementById('loadingSpinner');
+        const responseElement = document.getElementById('responseOutput');
+        const generatedResponseElement = document.getElementById('generatedResponse');
+        
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        this.hideSkeletonLoader();
+        
+        if (responseElement) {
+            responseElement.style.display = 'block';
+            responseElement.classList.add('response-fade-in');
+        }
+        
+        if (generatedResponseElement) {
+            // Type out the response for better UX
+            this.typeWriterEffect(generatedResponseElement, response);
+        }
+
+        // Show success animation
+        setTimeout(() => {
+            responseElement?.classList.add('success-animation');
+        }, 500);
+    }
+
+    typeWriterEffect(element, text, speed = 30) {
+        element.textContent = '';
+        let i = 0;
+        
+        const typeWriter = () => {
+            if (i < text.length) {
+                element.textContent += text.charAt(i);
+                i++;
+                setTimeout(typeWriter, speed);
+            }
+        };
+        
+        typeWriter();
     }
 
     showError(message) {
-        document.getElementById('loadingSpinner').style.display = 'none';
-        // Show error in a more user-friendly way
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ff4444;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            font-weight: 500;
-        `;
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
+        const loadingElement = document.getElementById('loadingSpinner');
+        const responseElement = document.getElementById('responseOutput');
         
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-            }
-        }, 5000);
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        this.hideSkeletonLoader();
+        
+        // Show error notification instead of alert
+        this.showNotification(message, 'error');
+        
+        // Shake the form for visual feedback
+        const form = document.querySelector('.tool-form');
+        if (form) {
+            form.classList.add('error-shake');
+            setTimeout(() => {
+                form.classList.remove('error-shake');
+            }, 500);
+        }
     }
 
     copyResponse(event) {
@@ -470,7 +823,8 @@ class EnterpriseAIWebsite {
                 button.style.background = '';
             }, 2000);
         }).catch(err => {
-            this.showError('Failed to copy to clipboard');
+            console.error('Failed to copy text: ', err);
+            alert('Failed to copy to clipboard');
         });
     }
 
@@ -569,30 +923,22 @@ class EnterpriseAIWebsite {
             campaign.ctr += (Math.random() - 0.5) * 0.2;
         });
 
-        // Update campaign display with error handling
+        // Update campaign display
         const campaignList = document.getElementById('adCampaigns');
-        if (campaignList) {
-            campaignList.innerHTML = this.campaigns.map(campaign => `
-                <div class="campaign-item">
-                    <div class="campaign-info">
-                        <h4>${this.escapeHtml(campaign.name)}</h4>
-                        <div class="campaign-stats">
-                            <span>ROI: ${Math.round(campaign.roi)}%</span>
-                            <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
-                        </div>
-                    </div>
-                    <div class="campaign-progress">
-                        <div class="progress-bar" style="width: ${campaign.progress}%"></div>
+        campaignList.innerHTML = this.campaigns.map(campaign => `
+            <div class="campaign-item">
+                <div class="campaign-info">
+                    <h4>${campaign.name}</h4>
+                    <div class="campaign-stats">
+                        <span>ROI: ${Math.round(campaign.roi)}%</span>
+                        <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
                     </div>
                 </div>
-            `).join('');
-        }
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+                <div class="campaign-progress">
+                    <div class="progress-bar" style="width: ${campaign.progress}%"></div>
+                </div>
+            </div>
+        `).join('');
     }
 
     updateAIRecommendations() {
@@ -620,14 +966,113 @@ class EnterpriseAIWebsite {
 
     refreshAdMetrics() {
         const button = document.querySelector('.btn-refresh');
-        button.style.transform = 'rotate(360deg)';
-        this.updateCampaigns();
-        setTimeout(() => button.style.transform = '', 500);
+        if (button) {
+            button.style.transform = 'rotate(360deg)';
+            this.updateCampaigns();
+            setTimeout(() => button.style.transform = '', 500);
+        }
+    }
+
+    // Performance optimization methods
+    preloadCriticalResources() {
+        // Preload critical fonts
+        const fontUrls = [
+            'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'
+        ];
+
+        fontUrls.forEach(url => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = url;
+            link.as = 'style';
+            link.onload = () => {
+                link.rel = 'stylesheet';
+            };
+            document.head.appendChild(link);
+        });
+    }
+
+    // Enhanced analytics tracking
+    trackEvent(eventName, properties = {}) {
+        try {
+            // Console logging for development
+            console.log('Event tracked:', eventName, properties);
+            
+            // Google Analytics 4
+            if (typeof gtag !== 'undefined') {
+                gtag('event', eventName, properties);
+            }
+            
+            // Custom analytics endpoint (if available)
+            if (this.analyticsEndpoint) {
+                fetch(this.analyticsEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        event: eventName,
+                        properties: properties,
+                        timestamp: new Date().toISOString(),
+                        url: window.location.href,
+                        userAgent: navigator.userAgent
+                    })
+                }).catch(error => {
+                    console.warn('Analytics tracking failed:', error);
+                });
+            }
+        } catch (error) {
+            console.warn('Event tracking failed:', error);
+        }
+    }
+
+    // Cleanup method for memory management
+    cleanup() {
+        // Clear intervals
+        if (this.metricsInterval) {
+            clearInterval(this.metricsInterval);
+        }
+        if (this.campaignsInterval) {
+            clearInterval(this.campaignsInterval);
+        }
+        if (this.recommendationsInterval) {
+            clearInterval(this.recommendationsInterval);
+        }
+
+        // Disconnect observers
+        this.observers.forEach(observer => {
+            if (observer && typeof observer.disconnect === 'function') {
+                observer.disconnect();
+            }
+        });
+        this.observers.clear();
+
+        // Clear animation queue
+        this.animationQueue = [];
+    }
+
+    // Method to handle page visibility changes for performance
+    handleVisibilityChange() {
+        if (document.hidden) {
+            // Page is hidden, pause non-critical animations
+            this.pauseAnimations();
+        } else {
+            // Page is visible, resume animations
+            this.resumeAnimations();
+        }
+    }
+
+    pauseAnimations() {
+        document.body.classList.add('animations-paused');
+    }
+
+    resumeAnimations() {
+        document.body.classList.remove('animations-paused');
     }
 }
 
 // API Connection Test
-async function testApiConnection(event) {
+async function testApiConnection() {
     const button = event.target;
     const originalText = button.innerHTML;
     
@@ -663,31 +1108,59 @@ function regenerateResponse() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Fix: Use correct class name
-    window.reviewGenerator = new EnterpriseAIWebsite();
-    
-    // Add some interactive animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+    try {
+        // Initialize the main website class
+        window.enterpriseAI = new EnterpriseAIWebsite();
+        
+        // Backward compatibility for review generator
+        window.reviewGenerator = window.enterpriseAI;
+        
+        // Add enhanced floating elements animation based on scroll
+        let lastScrollTop = 0;
+        const floatingIcons = document.querySelectorAll('.floating-icon');
+        
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const isScrollingDown = scrollTop > lastScrollTop;
+            
+            floatingIcons.forEach((icon, index) => {
+                const speed = 0.5 + (index * 0.1);
+                const yPos = scrollTop * speed;
+                icon.style.transform = `translateY(${isScrollingDown ? yPos : -yPos}px)`;
+            });
+            
+            lastScrollTop = scrollTop;
+        });
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+        // Add enhanced keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // ESC key to close chat or modals
+            if (e.key === 'Escape') {
+                if (window.enterpriseAI && window.enterpriseAI.chatWidget) {
+                    const chatWidget = window.enterpriseAI.chatWidget;
+                    if (chatWidget.style.display !== 'none') {
+                        window.enterpriseAI.closeChat();
+                    }
+                }
+            }
+            
+            // Tab navigation enhancement
+            if (e.key === 'Tab') {
+                document.body.classList.add('keyboard-navigation');
             }
         });
-    }, observerOptions);
 
-    // Observe all service cards and pricing cards
-    document.querySelectorAll('.service-card, .pricing-card').forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(card);
-    });
+        // Remove keyboard navigation class on mouse use
+        document.addEventListener('mousedown', () => {
+            document.body.classList.remove('keyboard-navigation');
+        });
+
+        // Performance optimization: Preload critical resources
+        window.enterpriseAI.preloadCriticalResources();
+
+    } catch (error) {
+        console.error('Failed to initialize website:', error);
+    }
 });
 
 // Add some demo data for quick testing
@@ -716,15 +1189,16 @@ function addDemoButton() {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            // ServiceWorker registered successfully
+            console.log('ServiceWorker registration successful');
         }, function(err) {
-            // ServiceWorker registration failed
+            console.log('ServiceWorker registration failed: ', err);
         });
     });
 }
 
 // Analytics placeholder (replace with your analytics code)
 function trackEvent(eventName, properties = {}) {
+    console.log('Event tracked:', eventName, properties);
     // Add your analytics tracking code here
     // Example: gtag('event', eventName, properties);
 }
@@ -741,5 +1215,5 @@ document.addEventListener('click', function(e) {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { EnterpriseAIWebsite };
-}
+    module.exports = { ReviewResponseGenerator };
+} 
