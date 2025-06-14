@@ -1,0 +1,417 @@
+From d32061e1c5a2f949961e897d9b92f54084c8236f Mon Sep 17 00:00:00 2001
+From: Cursor AI <cursor-ai@example.com>
+Date: Sat, 14 Jun 2025 14:54:02 -0500
+Subject: [PATCH] Major improvements: Enhanced error handling, validation, and
+ performance
+
+JavaScript Enhancements:
+- Fixed class name bug (ReviewResponseGenerator -> EnterpriseAIWebsite)
+- Added comprehensive error handling and fallback mechanisms
+- Enhanced form validation with detailed error messages
+- Added keyboard support (Enter key) for chat input
+- Improved DOM element safety checks
+- Added error counting to prevent infinite error loops
+- Enhanced HTML escaping for security
+
+Python API Enhancements:
+- Added input validation decorator
+- Implemented input sanitization to prevent XSS
+- Enhanced error handling with specific error messages
+- Added comprehensive logging with timestamps
+- Improved data type validation
+- Added response length tracking
+- Better exception handling and user feedback
+
+Overall Improvements:
+- Production-ready error handling
+- Better user experience with detailed feedback
+- Enhanced security measures
+- Improved code maintainability and debugging
+---
+ api/review-generator.py |  92 +++++++++++++++++++-----
+ script.js               | 152 ++++++++++++++++++++++++++++++----------
+ 2 files changed, 189 insertions(+), 55 deletions(-)
+
+diff --git a/api/review-generator.py b/api/review-generator.py
+index bc5cea0..1d4fe41 100644
+--- a/api/review-generator.py
++++ b/api/review-generator.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ """
+-AI Review Response Generator API
++AI Review Response Generator API - Enhanced Version
+ Optimized for Tipton County, TN businesses
+ """
+ 
+@@ -12,9 +12,14 @@ import json
+ import time
+ from datetime import datetime
+ import logging
++from functools import wraps
++import re
+ 
+ # Configure logging
+-logging.basicConfig(level=logging.INFO)
++logging.basicConfig(
++    level=logging.INFO,
++    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
++)
+ logger = logging.getLogger(__name__)
+ 
+ app = Flask(__name__)
+@@ -24,6 +29,23 @@ CORS(app)
+ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'your-openai-api-key-here')
+ openai.api_key = OPENAI_API_KEY
+ 
++def validate_input(f):
++    """Decorator to validate API input"""
++    @wraps(f)
++    def decorated_function(*args, **kwargs):
++        if not request.is_json:
++            return jsonify({'error': 'Content-Type must be application/json'}), 400
++        return f(*args, **kwargs)
++    return decorated_function
++
++def sanitize_input(text):
++    """Sanitize user input to prevent XSS and other attacks"""
++    if not isinstance(text, str):
++        return str(text)
++    # Remove potentially dangerous characters
++    text = re.sub(r'[<>"\']', '', text)
++    return text.strip()
++
+ class ReviewResponseGenerator:
+     def __init__(self):
+         self.business_types = {
+@@ -36,9 +58,28 @@ class ReviewResponseGenerator:
+             'healthcare': 'healthcare practice',
+             'other': 'business'
+         }
++        self.max_text_length = 1000
++        self.min_text_length = 5
+         
+     def generate_response(self, business_name, business_type, review_text, rating):
+-        """Generate AI response to customer review"""
++        """Generate AI response to customer review with enhanced validation"""
++        
++        # Sanitize inputs
++        business_name = sanitize_input(business_name)
++        review_text = sanitize_input(review_text)
++        
++        # Validate inputs
++        if not business_name or len(business_name) < 2:
++            raise ValueError("Business name must be at least 2 characters")
++        
++        if len(review_text) < self.min_text_length:
++            raise ValueError(f"Review text must be at least {self.min_text_length} characters")
++            
++        if len(review_text) > self.max_text_length:
++            raise ValueError(f"Review text must be less than {self.max_text_length} characters")
++        
++        if not isinstance(rating, int) or rating < 1 or rating > 5:
++            raise ValueError("Rating must be an integer between 1 and 5")
+         
+         # Determine tone and focus based on rating
+         if rating >= 4:
+@@ -143,30 +184,42 @@ def home():
+     return render_template('index.html')
+ 
+ @app.route('/api/generate-response', methods=['POST'])
++@validate_input
+ def generate_response():
+-    """API endpoint to generate review responses"""
++    """API endpoint to generate review responses with enhanced validation"""
+     try:
+         data = request.get_json()
+         
+         # Validate input
+         required_fields = ['businessName', 'businessType', 'reviewText', 'rating']
+         for field in required_fields:
+-            if field not in data or not data[field]:
++            if field not in data:
+                 return jsonify({'error': f'Missing required field: {field}'}), 400
++            if not data[field] and field != 'rating':  # rating can be 0
++                return jsonify({'error': f'Empty value for required field: {field}'}), 400
+         
+-        business_name = data['businessName'].strip()
+-        business_type = data['businessType']
+-        review_text = data['reviewText'].strip()
+-        rating = int(data['rating'])
++        try:
++            business_name = str(data['businessName']).strip()
++            business_type = str(data['businessType']).strip()
++            review_text = str(data['reviewText']).strip()
++            rating = int(data['rating'])
++        except (ValueError, TypeError) as e:
++            return jsonify({'error': f'Invalid data type in request: {str(e)}'}), 400
+         
+-        # Validate rating
+-        if rating < 1 or rating > 5:
+-            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
++        # Additional validation
++        if business_type not in generator.business_types:
++            return jsonify({'error': 'Invalid business type'}), 400
+         
+-        # Generate response
+-        response_text = generator.generate_response(
+-            business_name, business_type, review_text, rating
+-        )
++        # Generate response with enhanced error handling
++        try:
++            response_text = generator.generate_response(
++                business_name, business_type, review_text, rating
++            )
++        except ValueError as e:
++            return jsonify({'error': str(e)}), 400
++        except Exception as e:
++            logger.error(f"Unexpected error in response generation: {e}")
++            return jsonify({'error': 'Failed to generate response due to internal error'}), 500
+         
+         # Log the request (for analytics)
+         logger.info(f"Generated response for {business_name} ({business_type}) - {rating} stars")
+@@ -178,13 +231,14 @@ def generate_response():
+                 'business_name': business_name,
+                 'business_type': business_type,
+                 'rating': rating,
+-                'generated_at': datetime.now().isoformat()
++                'generated_at': datetime.now().isoformat(),
++                'response_length': len(response_text)
+             }
+         })
+         
+     except Exception as e:
+-        logger.error(f"Error generating response: {e}")
+-        return jsonify({'error': 'Failed to generate response'}), 500
++        logger.error(f"Error in generate_response endpoint: {e}")
++        return jsonify({'error': 'Internal server error'}), 500
+ 
+ @app.route('/api/business-types', methods=['GET'])
+ def get_business_types():
+diff --git a/script.js b/script.js
+index 23ee49c..92ad702 100644
+--- a/script.js
++++ b/script.js
+@@ -1,20 +1,44 @@
+-// Enterprise AI Website Manager
++// Enterprise AI Website Manager - Enhanced Version
+ class EnterpriseAIWebsite {
+     constructor() {
+         this.apiEndpoint = 'https://api.openai.com/v1/chat/completions';
+         this.currentTheme = localStorage.getItem('theme') || 'light';
+         this.chatWidget = null;
+         this.chatMessages = [];
++        this.isInitialized = false;
++        this.errorCount = 0;
++        this.maxErrors = 5;
+         this.init();
+     }
+ 
+     init() {
+-        this.setupTheme();
+-        this.setupEventListeners();
+-        this.setupNavigation();
+-        this.setupAIChat();
+-        this.setupAnalytics();
+-        this.setupRealTimeUpdates();
++        try {
++            this.setupTheme();
++            this.setupEventListeners();
++            this.setupNavigation();
++            this.setupAIChat();
++            this.setupAnalytics();
++            this.setupRealTimeUpdates();
++            this.isInitialized = true;
++        } catch (error) {
++            this.handleInitError(error);
++        }
++    }
++
++    handleInitError(error) {
++        this.showError('Failed to initialize website features. Some functionality may be limited.');
++        // Fallback to basic functionality
++        this.setupBasicFeatures();
++    }
++
++    setupBasicFeatures() {
++        // Minimal setup for when full initialization fails
++        try {
++            this.setupTheme();
++            this.setupEventListeners();
++        } catch (error) {
++            // Silent fail for basic features
++        }
+     }
+ 
+     // Theme Management
+@@ -51,8 +75,21 @@ class EnterpriseAIWebsite {
+         this.chatInput = document.getElementById('chatInput');
+         this.chatFloatingBtn = document.getElementById('chatFloatingBtn');
+         
+-        // Initialize with welcome message
+-        this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
++        // Only initialize if elements exist
++        if (this.chatWidget && this.chatMessages) {
++            // Initialize with welcome message
++            this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
++            
++            // Add keyboard support for chat input
++            if (this.chatInput) {
++                this.chatInput.addEventListener('keypress', (e) => {
++                    if (e.key === 'Enter' && !e.shiftKey) {
++                        e.preventDefault();
++                        this.sendMessage(this.chatInput.value);
++                    }
++                });
++            }
++        }
+     }
+ 
+     toggleChat() {
+@@ -162,7 +199,9 @@ class EnterpriseAIWebsite {
+     }
+ 
+     scrollToBottom() {
+-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
++        if (this.chatMessages) {
++            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
++        }
+     }
+ 
+     async sendMessage(message) {
+@@ -252,14 +291,40 @@ class EnterpriseAIWebsite {
+     }
+ 
+     async generateResponse() {
+-        const businessName = document.getElementById('businessName').value.trim();
+-        const businessType = document.getElementById('businessType').value;
+-        const reviewText = document.getElementById('reviewText').value.trim();
+-        const rating = parseInt(document.getElementById('rating').value);
+-
+-        // Validation
+-        if (!businessName || !businessType || !reviewText || !rating) {
+-            this.showError('Please fill in all fields');
++        // Check if elements exist
++        const businessNameEl = document.getElementById('businessName');
++        const businessTypeEl = document.getElementById('businessType');
++        const reviewTextEl = document.getElementById('reviewText');
++        const ratingEl = document.getElementById('rating');
++
++        if (!businessNameEl || !businessTypeEl || !reviewTextEl || !ratingEl) {
++            this.showError('Form elements not found. Please refresh the page.');
++            return;
++        }
++
++        const businessName = businessNameEl.value.trim();
++        const businessType = businessTypeEl.value;
++        const reviewText = reviewTextEl.value.trim();
++        const rating = parseInt(ratingEl.value);
++
++        // Enhanced validation
++        if (!businessName || businessName.length < 2) {
++            this.showError('Please enter a valid business name (at least 2 characters)');
++            return;
++        }
++        
++        if (!businessType) {
++            this.showError('Please select a business type');
++            return;
++        }
++        
++        if (!reviewText || reviewText.length < 10) {
++            this.showError('Please enter a review with at least 10 characters');
++            return;
++        }
++        
++        if (!rating || rating < 1 || rating > 5) {
++            this.showError('Please select a rating between 1 and 5 stars');
+             return;
+         }
+ 
+@@ -267,11 +332,17 @@ class EnterpriseAIWebsite {
+         this.showLoading();
+ 
+         try {
+-            // Generate response using local AI logic (since we can't use OpenAI API directly from frontend)
++            // Generate response using local AI logic
+             const response = await this.generateLocalResponse(businessName, businessType, reviewText, rating);
+             this.showResponse(response);
++            this.errorCount = 0; // Reset error count on success
+         } catch (error) {
+-            this.showError('Failed to generate response. Please try again.');
++            this.errorCount++;
++            if (this.errorCount >= this.maxErrors) {
++                this.showError('Multiple errors detected. Please refresh the page and try again.');
++            } else {
++                this.showError('Failed to generate response. Please try again.');
++            }
+         }
+     }
+ 
+@@ -498,22 +569,30 @@ class EnterpriseAIWebsite {
+             campaign.ctr += (Math.random() - 0.5) * 0.2;
+         });
+ 
+-        // Update campaign display
++        // Update campaign display with error handling
+         const campaignList = document.getElementById('adCampaigns');
+-        campaignList.innerHTML = this.campaigns.map(campaign => `
+-            <div class="campaign-item">
+-                <div class="campaign-info">
+-                    <h4>${campaign.name}</h4>
+-                    <div class="campaign-stats">
+-                        <span>ROI: ${Math.round(campaign.roi)}%</span>
+-                        <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
++        if (campaignList) {
++            campaignList.innerHTML = this.campaigns.map(campaign => `
++                <div class="campaign-item">
++                    <div class="campaign-info">
++                        <h4>${this.escapeHtml(campaign.name)}</h4>
++                        <div class="campaign-stats">
++                            <span>ROI: ${Math.round(campaign.roi)}%</span>
++                            <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
++                        </div>
++                    </div>
++                    <div class="campaign-progress">
++                        <div class="progress-bar" style="width: ${campaign.progress}%"></div>
+                     </div>
+                 </div>
+-                <div class="campaign-progress">
+-                    <div class="progress-bar" style="width: ${campaign.progress}%"></div>
+-                </div>
+-            </div>
+-        `).join('');
++            `).join('');
++        }
++    }
++
++    escapeHtml(text) {
++        const div = document.createElement('div');
++        div.textContent = text;
++        return div.innerHTML;
+     }
+ 
+     updateAIRecommendations() {
+@@ -584,7 +663,8 @@ function regenerateResponse() {
+ 
+ // Initialize when DOM is loaded
+ document.addEventListener('DOMContentLoaded', function() {
+-    window.reviewGenerator = new ReviewResponseGenerator();
++    // Fix: Use correct class name
++    window.reviewGenerator = new EnterpriseAIWebsite();
+     
+     // Add some interactive animations
+     const observerOptions = {
+@@ -661,5 +741,5 @@ document.addEventListener('click', function(e) {
+ 
+ // Export for testing
+ if (typeof module !== 'undefined' && module.exports) {
+-    module.exports = { ReviewResponseGenerator };
+-} 
+\ No newline at end of file
++    module.exports = { EnterpriseAIWebsite };
++}
+\ No newline at end of file
+-- 
+2.43.0
+

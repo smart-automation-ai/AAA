@@ -1,0 +1,40 @@
+[Unit]
+Description=GitHub Live Update Monitor
+Documentation=https://github.com/smart-automation-ai/AAA
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/home/jaymes/AA
+ExecStart=/home/jaymes/AA/watch_and_deploy.sh
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=github-live-update
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/jaymes/AA
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/jaymes
+Environment=USER=jaymes
+
+[Install]
+WantedBy=multi-user.target 
