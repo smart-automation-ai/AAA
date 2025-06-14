@@ -1,13 +1,209 @@
-// AI Review Response Generator
-class ReviewResponseGenerator {
+// Enterprise AI Website Manager
+class EnterpriseAIWebsite {
     constructor() {
         this.apiEndpoint = 'https://api.openai.com/v1/chat/completions';
+        this.currentTheme = localStorage.getItem('theme') || 'light';
+        this.chatWidget = null;
+        this.chatMessages = [];
         this.init();
     }
 
     init() {
+        this.setupTheme();
         this.setupEventListeners();
         this.setupNavigation();
+        this.setupAIChat();
+        this.setupAnalytics();
+        this.setupRealTimeUpdates();
+    }
+
+    // Theme Management
+    setupTheme() {
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
+        this.updateThemeIcon();
+    }
+
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
+        localStorage.setItem('theme', this.currentTheme);
+        this.updateThemeIcon();
+        
+        // Add smooth transition effect
+        document.body.style.transition = 'all 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    }
+
+    updateThemeIcon() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            icon.className = this.currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+    }
+
+    // AI Chat System
+    setupAIChat() {
+        this.chatWidget = document.getElementById('aiChatWidget');
+        this.chatMessages = document.getElementById('chatMessages');
+        this.chatInput = document.getElementById('chatInput');
+        this.chatFloatingBtn = document.getElementById('chatFloatingBtn');
+        
+        // Initialize with welcome message
+        this.addBotMessage("👋 Hello! I'm your AI Assistant. I can help you learn about our enterprise solutions, pricing, and answer any questions about AI automation for your business.");
+    }
+
+    toggleChat() {
+        if (this.chatWidget.style.display === 'none' || !this.chatWidget.style.display) {
+            this.chatWidget.style.display = 'flex';
+            this.chatFloatingBtn.style.display = 'none';
+            this.hideNotification();
+        } else {
+            this.chatWidget.style.display = 'none';
+            this.chatFloatingBtn.style.display = 'flex';
+        }
+    }
+
+    closeChat() {
+        this.chatWidget.style.display = 'none';
+        this.chatFloatingBtn.style.display = 'flex';
+    }
+
+    minimizeChat() {
+        this.chatWidget.style.height = this.chatWidget.style.height === '60px' ? '600px' : '60px';
+        const chatBody = document.getElementById('chatBody');
+        const chatInput = document.querySelector('.chat-input');
+        
+        if (this.chatWidget.style.height === '60px') {
+            chatBody.style.display = 'none';
+            chatInput.style.display = 'none';
+        } else {
+            chatBody.style.display = 'flex';
+            chatInput.style.display = 'block';
+        }
+    }
+
+    hideNotification() {
+        const notification = document.querySelector('.chat-notification');
+        if (notification) {
+            notification.style.display = 'none';
+        }
+    }
+
+    addUserMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user-message';
+        messageDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="message-content">
+                <p>${message}</p>
+            </div>
+        `;
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    addBotMessage(message, showQuickActions = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        
+        let quickActionsHtml = '';
+        if (showQuickActions) {
+            quickActionsHtml = `
+                <div class="quick-actions">
+                    <button class="quick-action" data-message="Tell me about your enterprise solutions">
+                        <i class="fas fa-cogs"></i>
+                        Enterprise Solutions
+                    </button>
+                    <button class="quick-action" data-message="What are your pricing options?">
+                        <i class="fas fa-dollar-sign"></i>
+                        Pricing Info
+                    </button>
+                    <button class="quick-action" data-message="How can AI help my business?">
+                        <i class="fas fa-lightbulb"></i>
+                        AI Benefits
+                    </button>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <p>${message}</p>
+                ${quickActionsHtml}
+            </div>
+        `;
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // Add event listeners to quick actions
+        const quickActions = messageDiv.querySelectorAll('.quick-action');
+        quickActions.forEach(button => {
+            button.addEventListener('click', () => {
+                this.sendMessage(button.dataset.message);
+            });
+        });
+    }
+
+    showTyping() {
+        document.getElementById('chatTyping').style.display = 'flex';
+        this.scrollToBottom();
+    }
+
+    hideTyping() {
+        document.getElementById('chatTyping').style.display = 'none';
+    }
+
+    scrollToBottom() {
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    async sendMessage(message) {
+        if (!message.trim()) return;
+        
+        this.addUserMessage(message);
+        this.chatInput.value = '';
+        this.showTyping();
+        
+        // Simulate AI response
+        setTimeout(() => {
+            this.hideTyping();
+            const response = this.generateAIResponse(message);
+            this.addBotMessage(response);
+        }, 1500);
+    }
+
+    generateAIResponse(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.includes('enterprise') || lowerMessage.includes('solution')) {
+            return "🚀 Our enterprise solutions include Intelligent Process Automation, AI Customer Experience Platform, and Predictive Analytics Suite. Each solution is designed to scale with your business and deliver measurable ROI. Would you like to know more about a specific solution?";
+        }
+        
+        if (lowerMessage.includes('pricing') || lowerMessage.includes('cost')) {
+            return "💰 We offer three tiers: Professional ($2,500/month), Enterprise ($7,500/month), and Enterprise Plus (custom pricing). All plans include 24/7 support and come with our ROI guarantee. Would you like to schedule a demo to discuss your specific needs?";
+        }
+        
+        if (lowerMessage.includes('ai') || lowerMessage.includes('benefit')) {
+            return "🎯 AI can transform your business by automating repetitive tasks, improving decision-making with data insights, enhancing customer experiences, and reducing operational costs by up to 85%. Our clients typically see 300% ROI in the first year. What specific business challenges are you looking to solve?";
+        }
+        
+        if (lowerMessage.includes('demo') || lowerMessage.includes('consultation')) {
+            return "📅 I'd be happy to arrange a personalized demo! Our solutions specialists can show you exactly how our AI can benefit your specific industry and use case. You can schedule a consultation using the 'Schedule Enterprise Demo' button in our contact section. What's your primary area of interest?";
+        }
+        
+        if (lowerMessage.includes('support') || lowerMessage.includes('help')) {
+            return "🛠️ We provide 24/7 enterprise support with dedicated account managers, priority response times, and comprehensive training. Our support includes technical assistance, best practices guidance, and ongoing optimization recommendations. How can I help you get started?";
+        }
+        
+        return "Thank you for your question! I'm here to help you understand how our AI solutions can transform your business. Feel free to ask about our enterprise solutions, pricing, implementation process, or schedule a personalized demo. What would you like to know more about?";
     }
 
     setupEventListeners() {
@@ -218,6 +414,121 @@ class ReviewResponseGenerator {
             submitButton.style.background = '';
             submitButton.disabled = false;
         }, 3000);
+    }
+
+    // Analytics & Real-time Features
+    setupAnalytics() {
+        this.metrics = {
+            conversionRate: 4.8,
+            avgOrderValue: 156,
+            customerSat: 92,
+            activeVisitors: 247,
+            pageViewsPerMin: 89,
+            avgSessionDuration: '4m 32s'
+        };
+
+        this.campaigns = [
+            { name: 'Summer Promotion', roi: 324, ctr: 2.8, progress: 75 },
+            { name: 'Product Launch', roi: 256, ctr: 3.2, progress: 60 }
+        ];
+
+        this.updateMetrics();
+    }
+
+    setupRealTimeUpdates() {
+        // Update metrics every 5 seconds
+        setInterval(() => this.updateMetrics(), 5000);
+        
+        // Update campaigns every 30 seconds
+        setInterval(() => this.updateCampaigns(), 30000);
+        
+        // Update AI recommendations every minute
+        setInterval(() => this.updateAIRecommendations(), 60000);
+    }
+
+    updateMetrics() {
+        // Simulate real-time metric changes
+        this.metrics.conversionRate += (Math.random() - 0.5) * 0.2;
+        this.metrics.avgOrderValue += (Math.random() - 0.5) * 5;
+        this.metrics.activeVisitors += Math.floor((Math.random() - 0.5) * 10);
+        this.metrics.pageViewsPerMin += Math.floor((Math.random() - 0.5) * 5);
+
+        // Update DOM
+        document.getElementById('conversionRate').textContent = this.metrics.conversionRate.toFixed(1) + '%';
+        document.getElementById('avgOrderValue').textContent = '$' + Math.round(this.metrics.avgOrderValue);
+        document.getElementById('customerSat').textContent = this.metrics.customerSat + '%';
+        document.getElementById('activeVisitors').textContent = this.metrics.activeVisitors;
+        document.getElementById('pageViewsPerMin').textContent = this.metrics.pageViewsPerMin;
+        document.getElementById('avgSessionDuration').textContent = this.metrics.avgSessionDuration;
+
+        // Update trends
+        this.updateMetricTrends();
+    }
+
+    updateMetricTrends() {
+        const trends = document.querySelectorAll('.metric-trend');
+        trends.forEach(trend => {
+            const value = Math.random() > 0.5;
+            trend.className = `metric-trend ${value ? 'positive' : 'negative'}`;
+            trend.textContent = `${value ? '↑' : '↓'} ${(Math.random() * 2).toFixed(1)}%`;
+        });
+    }
+
+    updateCampaigns() {
+        // Simulate campaign progress updates
+        this.campaigns.forEach(campaign => {
+            campaign.progress = Math.min(100, campaign.progress + (Math.random() * 5));
+            campaign.roi += (Math.random() - 0.5) * 10;
+            campaign.ctr += (Math.random() - 0.5) * 0.2;
+        });
+
+        // Update campaign display
+        const campaignList = document.getElementById('adCampaigns');
+        campaignList.innerHTML = this.campaigns.map(campaign => `
+            <div class="campaign-item">
+                <div class="campaign-info">
+                    <h4>${campaign.name}</h4>
+                    <div class="campaign-stats">
+                        <span>ROI: ${Math.round(campaign.roi)}%</span>
+                        <span>CTR: ${campaign.ctr.toFixed(1)}%</span>
+                    </div>
+                </div>
+                <div class="campaign-progress">
+                    <div class="progress-bar" style="width: ${campaign.progress}%"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    updateAIRecommendations() {
+        const recommendations = [
+            { icon: 'lightbulb', text: 'Increase ad spend on high-performing campaigns' },
+            { icon: 'chart-line', text: 'Optimize landing pages for better conversion' },
+            { icon: 'users', text: 'Target new audience segments based on data' },
+            { icon: 'clock', text: 'Adjust posting schedule for peak engagement' },
+            { icon: 'bullseye', text: 'Refine targeting parameters for better ROI' },
+            { icon: 'comments', text: 'Increase social media engagement strategies' }
+        ];
+
+        // Randomly select 3 recommendations
+        const selectedRecs = recommendations
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3);
+
+        // Update recommendations display
+        document.getElementById('aiRecommendations').innerHTML = selectedRecs.map(rec => `
+            <div class="recommendation-item">
+                <i class="fas fa-${rec.icon}"></i>
+                <p>${rec.text}</p>
+            </div>
+        `).join('');
+    }
+
+    refreshAdMetrics() {
+        const button = document.querySelector('.btn-refresh');
+        button.style.transform = 'rotate(360deg)';
+        this.updateCampaigns();
+        setTimeout(() => button.style.transform = '', 500);
     }
 }
 
