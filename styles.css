@@ -2071,11 +2071,10 @@ html {
 .ai-chat-toggle {
     width: 44px;
     height: 44px;
-    border: none;
+    border: 1px solid var(--border-light);
     border-radius: 12px;
     background: var(--bg-card);
     color: var(--text-secondary);
-    border: 1px solid var(--border-light);
     cursor: pointer;
     transition: all var(--transition-normal);
     display: flex;
@@ -2419,7 +2418,6 @@ html {
     font-size: 1.5rem;
     z-index: 999;
     transition: all var(--transition-normal);
-    position: relative;
 }
 
 .chat-floating-btn:hover {

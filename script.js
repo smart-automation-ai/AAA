@@ -237,7 +237,6 @@ class EnterpriseAIWebsite {
             let current = '';
             sections.forEach(section => {
                 const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
                 if (scrollY >= (sectionTop - 200)) {
                     current = section.getAttribute('id');
                 }
@@ -364,7 +363,7 @@ class EnterpriseAIWebsite {
         alert(message);
     }
 
-    copyResponse() {
+    copyResponse(event) {
         const responseText = document.getElementById('generatedResponse').textContent;
         navigator.clipboard.writeText(responseText).then(() => {
             // Show success feedback
@@ -389,10 +388,6 @@ class EnterpriseAIWebsite {
 
     handleContactForm(e) {
         e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
         
         // Simulate form submission
         this.showFormSuccess();
