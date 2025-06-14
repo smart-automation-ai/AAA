@@ -527,7 +527,7 @@ class EnterpriseAIWebsite {
 }
 
 // API Connection Test
-async function testApiConnection() {
+async function testApiConnection(event) {
     const button = event.target;
     const originalText = button.innerHTML;
     
