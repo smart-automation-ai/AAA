@@ -506,9 +506,8 @@ class EnterpriseAIWebsite {
         ];
 
         // Randomly select 3 recommendations
-        const selectedRecs = recommendations
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3);
+        const shuffledRecs = recommendations.toSorted(() => Math.random() - 0.5);
+        const selectedRecs = shuffledRecs.slice(0, 3);
 
         // Update recommendations display
         document.getElementById('aiRecommendations').innerHTML = selectedRecs.map(rec => `
