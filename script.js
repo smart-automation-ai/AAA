@@ -1,14 +1,19 @@
 // Enterprise AI Website Manager
 class EnterpriseAIWebsite {
     constructor() {
-        this.apiEndpoint = 'https://api.openai.com/v1/chat/completions';
-        this.currentTheme = localStorage.getItem('theme') || 'light';
+        this.apiEndpoint = '/api/generate-response';
+        this.currentTheme = localStorage.getItem('theme') || this.getSystemPreference();
         this.chatWidget = null;
         this.chatMessages = [];
         this.animationQueue = [];
         this.isInitialized = false;
         this.observers = new Map();
         this.init();
+    }
+
+    // Get system color scheme preference
+    getSystemPreference() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
     async init() {
@@ -59,7 +64,7 @@ class EnterpriseAIWebsite {
         notification.className = `notification notification-${type}`;
         notification.innerHTML = `
             <div class="notification-content">
-                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
                 <span>${message}</span>
             </div>
             <button class="notification-close">
@@ -82,31 +87,81 @@ class EnterpriseAIWebsite {
         });
     }
 
-    // Theme Management
+    // Theme Management - Enhanced and Fixed
     setupTheme() {
+        // Ensure theme is properly applied on page load
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Use saved theme, or fall back to system preference
+        this.currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        
+        // Apply theme immediately to prevent flash
         document.documentElement.setAttribute('data-theme', this.currentTheme);
+        document.documentElement.classList.add('theme-transition');
+        
+        // Update the toggle button
         this.updateThemeIcon();
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                this.currentTheme = e.matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', this.currentTheme);
+                this.updateThemeIcon();
+            }
+        });
     }
 
     toggleTheme() {
+        // Toggle between light and dark
         this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        
+        // Apply theme with smooth transition
         document.documentElement.setAttribute('data-theme', this.currentTheme);
+        
+        // Save preference
         localStorage.setItem('theme', this.currentTheme);
+        
+        // Update icon and accessibility
         this.updateThemeIcon();
         
-        // Add smooth transition effect
-        document.body.style.transition = 'all 0.3s ease';
-        setTimeout(() => {
-            document.body.style.transition = '';
-        }, 300);
+        // Add visual feedback
+        this.showThemeChangeNotification();
+        
+        // Log theme change
+        console.log('Theme changed to:', this.currentTheme);
     }
 
     updateThemeIcon() {
         const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            const icon = themeToggle.querySelector('i');
-            icon.className = this.currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        if (!themeToggle) return;
+        
+        const icon = themeToggle.querySelector('i') || document.createElement('i');
+        if (!themeToggle.contains(icon)) {
+            themeToggle.appendChild(icon);
         }
+        
+        // Update icon based on current theme
+        if (this.currentTheme === 'light') {
+            icon.className = 'fas fa-moon';
+            themeToggle.style.color = '#dc2626'; // Red color for moon
+            themeToggle.setAttribute('aria-label', 'Switch to dark mode');
+            themeToggle.setAttribute('title', 'Switch to dark mode');
+        } else {
+            icon.className = 'fas fa-sun';
+            themeToggle.style.color = '#ef4444'; // Bright red color for sun
+            themeToggle.setAttribute('aria-label', 'Switch to light mode');
+            themeToggle.setAttribute('title', 'Switch to light mode');
+        }
+    }
+
+    showThemeChangeNotification() {
+        const message = this.currentTheme === 'dark' 
+            ? '🌙 Switched to dark mode' 
+            : '☀️ Switched to light mode';
+        
+        this.showNotification(message, 'info');
     }
 
     // Animation System
@@ -117,20 +172,133 @@ class EnterpriseAIWebsite {
             element.style.setProperty('--delay', delay + 's');
         });
 
+        // Enhanced scroll-triggered animations
+        this.setupScrollAnimations();
+        
         // Trigger hero animations on load
         this.triggerHeroAnimations();
+        
+        // Setup parallax effects
+        this.setupParallaxEffects();
+        
+        // Setup magnetic buttons
+        this.setupMagneticButtons();
+    }
+
+    setupScrollAnimations() {
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in-view');
+                    
+                    // Add staggered animation for child elements
+                    const children = entry.target.querySelectorAll('.animate-child');
+                    children.forEach((child, index) => {
+                        setTimeout(() => {
+                            child.classList.add('animate-in-view');
+                        }, index * 100);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for scroll animations
+        document.querySelectorAll('.service-card, .case-study-card, .pricing-card, .animate-on-scroll').forEach(element => {
+            scrollObserver.observe(element);
+        });
+    }
+
+    setupParallaxEffects() {
+        let ticking = false;
+        
+        const updateParallax = () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.parallax-element');
+            
+            parallaxElements.forEach(element => {
+                const speed = element.dataset.speed || 0.5;
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translateY(${yPos}px)`;
+            });
+            
+            ticking = false;
+        };
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateParallax);
+                ticking = true;
+            }
+        });
+    }
+
+    setupMagneticButtons() {
+        const magneticElements = document.querySelectorAll('.btn, .theme-toggle, .nav-link');
+        
+        magneticElements.forEach(element => {
+            element.addEventListener('mousemove', (e) => {
+                const rect = element.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                const distance = Math.sqrt(x * x + y * y);
+                const maxDistance = 50;
+                
+                if (distance < maxDistance) {
+                    const strength = (maxDistance - distance) / maxDistance;
+                    const moveX = x * strength * 0.3;
+                    const moveY = y * strength * 0.3;
+                    
+                    element.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.05)`;
+                }
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                element.style.transform = '';
+            });
+        });
     }
 
     triggerHeroAnimations() {
+        // Enhanced hero animations with better timing
         const heroElements = document.querySelectorAll('.hero .animate-fade-in, .hero .animate-slide-up');
         heroElements.forEach((element, index) => {
             setTimeout(() => {
                 element.classList.add('animated');
-            }, index * 100);
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }, index * 150 + 300);
         });
 
-        // Animate stat numbers
+        // Animate stat numbers with enhanced easing
         this.animateStatNumbers();
+        
+        // Add floating animation to hero elements
+        this.setupFloatingElements();
+    }
+
+    setupFloatingElements() {
+        const floatingElements = document.querySelectorAll('.floating-icon');
+        
+        floatingElements.forEach((element, index) => {
+            // Add random movement
+            setInterval(() => {
+                const randomX = (Math.random() - 0.5) * 20;
+                const randomY = (Math.random() - 0.5) * 20;
+                const currentTransform = element.style.transform || '';
+                
+                element.style.transform = currentTransform + ` translate(${randomX}px, ${randomY}px)`;
+                
+                setTimeout(() => {
+                    element.style.transform = currentTransform;
+                }, 2000);
+            }, 5000 + index * 1000);
+        });
     }
 
     animateStatNumbers() {
@@ -138,34 +306,52 @@ class EnterpriseAIWebsite {
         statItems.forEach(item => {
             const targetValue = parseInt(item.dataset.value);
             const numberElement = item.querySelector('.stat-number');
-            const duration = 2000; // 2 seconds
+            const duration = 2500; // Increased duration for smoother animation
             const startTime = Date.now();
             
             const updateNumber = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Easing function for smooth animation
-                const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-                const currentValue = Math.floor(targetValue * easeOutCubic);
+                // Enhanced easing function
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const currentValue = Math.floor(targetValue * easeOutQuart);
                 
-                numberElement.textContent = currentValue + (targetValue === 85 ? '%' : targetValue === 500 ? '+' : '');
+                // Add number formatting
+                const formattedValue = currentValue.toLocaleString();
+                const suffix = targetValue === 85 ? '%' : targetValue === 500 ? '+' : '';
+                numberElement.textContent = formattedValue + suffix;
+                
+                // Add pulsing effect at milestones
+                if (currentValue % 50 === 0 && currentValue > 0) {
+                    numberElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        numberElement.style.transform = 'scale(1)';
+                    }, 150);
+                }
                 
                 if (progress < 1) {
                     requestAnimationFrame(updateNumber);
+                } else {
+                    // Final pulse animation
+                    numberElement.style.transform = 'scale(1.2)';
+                    setTimeout(() => {
+                        numberElement.style.transform = 'scale(1)';
+                    }, 200);
                 }
             };
             
-            // Delay animation start
+            // Delay animation start with stagger
             setTimeout(() => {
                 updateNumber();
-            }, 1000);
+            }, 1000 + (Array.from(statItems).indexOf(item) * 200));
         });
     }
 
+    // Enhanced intersection observer with better performance
     setupIntersectionObserver() {
         const observerOptions = {
-            threshold: 0.1,
+            threshold: [0.1, 0.3, 0.5],
             rootMargin: '0px 0px -50px 0px'
         };
 
@@ -179,13 +365,18 @@ class EnterpriseAIWebsite {
                         this.animateServiceCard(entry.target);
                     } else if (entry.target.classList.contains('pricing-card')) {
                         this.animatePricingCard(entry.target);
+                    } else if (entry.target.classList.contains('case-study-card')) {
+                        this.animateCaseStudyCard(entry.target);
                     }
+                    
+                    // Unobserve after animation to improve performance
+                    observer.unobserve(entry.target);
                 }
             });
         }, observerOptions);
 
         // Observe all animatable elements
-        document.querySelectorAll('.service-card, .pricing-card, .case-study-card, .dashboard-card').forEach(card => {
+        document.querySelectorAll('.service-card, .pricing-card, .case-study-card, .dashboard-card, .animate-on-scroll').forEach(card => {
             observer.observe(card);
         });
 
@@ -194,24 +385,91 @@ class EnterpriseAIWebsite {
 
     animateServiceCard(card) {
         card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        
-        requestAnimationFrame(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        });
-    }
-
-    animatePricingCard(card) {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px) scale(0.95)';
-        card.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+        card.style.transform = 'translateY(50px) scale(0.9)';
+        card.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
         
         requestAnimationFrame(() => {
             card.style.opacity = '1';
             card.style.transform = 'translateY(0) scale(1)';
         });
+        
+        // Animate icon separately
+        const icon = card.querySelector('.service-icon');
+        if (icon) {
+            setTimeout(() => {
+                icon.style.transform = 'scale(1.1) rotate(5deg)';
+                setTimeout(() => {
+                    icon.style.transform = 'scale(1) rotate(0deg)';
+                }, 300);
+            }, 400);
+        }
+    }
+
+    animatePricingCard(card) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(50px) rotateX(15deg)';
+        card.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        requestAnimationFrame(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0) rotateX(0deg)';
+        });
+        
+        // Animate price with special effect
+        const price = card.querySelector('.pricing-amount');
+        if (price) {
+            setTimeout(() => {
+                price.style.background = 'linear-gradient(135deg, #dc2626, #ef4444)';
+                price.style.webkitBackgroundClip = 'text';
+                price.style.webkitTextFillColor = 'transparent';
+                price.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    price.style.transform = 'scale(1)';
+                }, 300);
+            }, 600);
+        }
+    }
+
+    animateCaseStudyCard(card) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(-30px) rotateY(15deg)';
+        card.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        requestAnimationFrame(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateX(0) rotateY(0deg)';
+        });
+        
+        // Animate metrics with counter effect
+        const metrics = card.querySelectorAll('.case-study-metric-value');
+        metrics.forEach((metric, index) => {
+            setTimeout(() => {
+                const text = metric.textContent;
+                const number = parseInt(text.replace(/\D/g, ''));
+                if (number) {
+                    this.animateCounter(metric, 0, number, text.replace(/\d/g, ''), 1000);
+                }
+            }, 800 + index * 200);
+        });
+    }
+
+    animateCounter(element, start, end, suffix, duration) {
+        const startTime = Date.now();
+        
+        const updateCounter = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(start + (end - start) * easeOut);
+            
+            element.textContent = current + suffix;
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            }
+        };
+        
+        updateCounter();
     }
 
     // AI Chat System
@@ -480,11 +738,29 @@ class EnterpriseAIWebsite {
 
     smoothScrollTo(target, offset = 100) {
         const targetPosition = target.offsetTop - offset;
+        const startPosition = window.pageYOffset;
+        const distance = targetPosition - startPosition;
+        const duration = 1000;
+        let start = null;
         
-        window.scrollTo({
-            top: targetPosition,
-            behavior: 'smooth'
-        });
+        const animation = (currentTime) => {
+            if (start === null) start = currentTime;
+            const timeElapsed = currentTime - start;
+            const progress = Math.min(timeElapsed / duration, 1);
+            
+            // Easing function
+            const ease = progress < 0.5 
+                ? 4 * progress * progress * progress 
+                : (progress - 1) * (2 * progress - 2) * (2 * progress - 2) + 1;
+            
+            window.scrollTo(0, startPosition + distance * ease);
+            
+            if (timeElapsed < duration) {
+                requestAnimationFrame(animation);
+            }
+        };
+        
+        requestAnimationFrame(animation);
     }
 
     setupNavigation() {
@@ -702,6 +978,20 @@ class EnterpriseAIWebsite {
                     </div>
                 </div>
             `;
+            
+            // Add pulsing effect to loading text
+            const loadingText = loadingElement.querySelector('p');
+            if (loadingText) {
+                let dots = 0;
+                const originalText = loadingText.textContent;
+                const interval = setInterval(() => {
+                    dots = (dots + 1) % 4;
+                    loadingText.textContent = originalText + '.'.repeat(dots);
+                }, 500);
+                
+                // Store interval to clear it later
+                loadingElement.dataset.interval = interval;
+            }
         }
         
         if (responseElement) {
@@ -749,6 +1039,11 @@ class EnterpriseAIWebsite {
         const responseElement = document.getElementById('responseOutput');
         const generatedResponseElement = document.getElementById('generatedResponse');
         
+        // Clear loading interval
+        if (loadingElement && loadingElement.dataset.interval) {
+            clearInterval(parseInt(loadingElement.dataset.interval));
+        }
+        
         if (loadingElement) {
             loadingElement.style.display = 'none';
         }
@@ -761,29 +1056,67 @@ class EnterpriseAIWebsite {
         }
         
         if (generatedResponseElement) {
-            // Type out the response for better UX
-            this.typeWriterEffect(generatedResponseElement, response);
+            // Enhanced typewriter effect with cursor
+            this.typeWriterEffectEnhanced(generatedResponseElement, response);
         }
 
-        // Show success animation
+        // Show success animation with confetti effect
         setTimeout(() => {
             responseElement?.classList.add('success-animation');
-        }, 500);
+            this.showSuccessConfetti();
+        }, 1000);
     }
 
-    typeWriterEffect(element, text, speed = 30) {
-        element.textContent = '';
+    typeWriterEffectEnhanced(element, text, speed = 25) {
+        element.innerHTML = '<span class="typing-cursor">|</span>';
         let i = 0;
         
         const typeWriter = () => {
             if (i < text.length) {
-                element.textContent += text.charAt(i);
+                element.innerHTML = text.substring(0, i + 1) + '<span class="typing-cursor">|</span>';
                 i++;
                 setTimeout(typeWriter, speed);
+            } else {
+                // Remove cursor after completion
+                setTimeout(() => {
+                    element.innerHTML = text;
+                }, 500);
             }
         };
         
         typeWriter();
+    }
+
+    showSuccessConfetti() {
+        // Create confetti effect
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                this.createConfettiParticle();
+            }, i * 20);
+        }
+    }
+
+    createConfettiParticle() {
+        const confetti = document.createElement('div');
+        confetti.style.cssText = `
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: ${['#dc2626', '#ef4444', '#f87171'][Math.floor(Math.random() * 3)]};
+            top: 50%;
+            left: 50%;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            animation: confettiFall 3s ease-out forwards;
+        `;
+        
+        document.body.appendChild(confetti);
+        
+        // Remove after animation
+        setTimeout(() => {
+            confetti.remove();
+        }, 3000);
     }
 
     showError(message) {
@@ -1216,4 +1549,4 @@ document.addEventListener('click', function(e) {
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ReviewResponseGenerator };
-} 
+}

@@ -27,7 +27,8 @@ CORS(app)
 
 # Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'your-openai-api-key-here')
-openai.api_key = OPENAI_API_KEY
+if OPENAI_API_KEY and OPENAI_API_KEY != 'your-openai-api-key-here':
+    openai.api_key = OPENAI_API_KEY
 
 def validate_input(f):
     """Decorator to validate API input"""
@@ -114,7 +115,10 @@ class ReviewResponseGenerator:
         try:
             if OPENAI_API_KEY and OPENAI_API_KEY != 'your-openai-api-key-here':
                 # Use OpenAI API if available
-                response = openai.ChatCompletion.create(
+                from openai import OpenAI
+                client = OpenAI(api_key=OPENAI_API_KEY)
+                
+                response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
@@ -123,6 +127,7 @@ class ReviewResponseGenerator:
                 return response.choices[0].message.content.strip()
             else:
                 # Fallback to template-based responses
+                logger.info("Using template-based responses (no OpenAI API key)")
                 return self.generate_template_response(business_name, business_type, review_text, rating)
                 
         except Exception as e:
